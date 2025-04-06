@@ -5,9 +5,8 @@ const router = express.Router();
 const { createRecord, updateRecord } = require('../services/airtable');
 const { findRecordIdByQuoteId, findRecordIdByJobId } = require('../services/airtableHelpers');
 
-
-// Middleware to validate the webhook secret
-tokenAuth = (req, res, next) => {
+// Token auth middleware
+const tokenAuth = (req, res, next) => {
   const token = req.headers['authorization'];
   if (token !== process.env.JOBBER_WEBHOOK_SECRET) {
     return res.status(401).send('Unauthorized');
@@ -16,10 +15,7 @@ tokenAuth = (req, res, next) => {
 };
 
 // Quote Created
-
 router.post('/quote', tokenAuth, async (req, res) => {
-  console.log("🔥 Incoming quote data:", JSON.stringify(req.body, null, 2));
-
   const data = req.body;
   try {
     await createRecord('Quotes', {
@@ -31,24 +27,25 @@ router.post('/quote', tokenAuth, async (req, res) => {
     });
     res.status(200).send('Quote created');
   } catch (err) {
-    console.error('Quote Create Error:', err);
+    console.error('[Airtable] Create Error in Quotes:', err.message);
     res.status(500).send('Error saving quote');
   }
 });
-
 
 // Quote Updated
 router.post('/quote-updated', tokenAuth, async (req, res) => {
   const data = req.body;
   try {
-    const recordId = await findRecordIdByQuoteId(data.id); // custom logic to map IDs
+    const recordId = await findRecordIdByQuoteId(data.id);
+    if (!recordId) return res.status(404).send('Quote not found');
+
     await updateRecord('Quotes', recordId, {
       'Value': data.total_price,
       'Notes': data.title
     });
     res.status(200).send('Quote updated');
   } catch (err) {
-    console.error('Quote Update Error:', err);
+    console.error('[Airtable] Update Error in Quotes:', err.message);
     res.status(500).send('Error updating quote');
   }
 });
@@ -56,8 +53,8 @@ router.post('/quote-updated', tokenAuth, async (req, res) => {
 // Quote Deleted
 router.post('/quote-deleted', tokenAuth, async (req, res) => {
   const data = req.body;
-  console.log(`Quote deleted: ${data.id}`);
-  res.status(200).send('Handled deletion'); // actual deletion logic optional
+  console.log(`🗑 Quote deleted: ${data.id}`);
+  res.status(200).send('Quote deletion noted');
 });
 
 // Job Created
@@ -72,7 +69,7 @@ router.post('/job', tokenAuth, async (req, res) => {
     });
     res.status(200).send('Job created');
   } catch (err) {
-    console.error('Job Create Error:', err);
+    console.error('[Airtable] Create Error in Jobs:', err.message);
     res.status(500).send('Error saving job');
   }
 });
@@ -81,13 +78,16 @@ router.post('/job', tokenAuth, async (req, res) => {
 router.post('/job-updated', tokenAuth, async (req, res) => {
   const data = req.body;
   try {
-    const recordId = await findRecordIdByJobId(data.id); // custom logic to map IDs
+    const recordId = await findRecordIdByJobId(data.id);
+    if (!recordId) return res.status(404).send('Job not found');
+
     await updateRecord('Jobs', recordId, {
-      'Status': data.status
+      'Status': data.status || 'Updated',
+      'Assigned Rep': data.assigned_to?.full_name || ''
     });
     res.status(200).send('Job updated');
   } catch (err) {
-    console.error('Job Update Error:', err);
+    console.error('[Airtable] Update Error in Jobs:', err.message);
     res.status(500).send('Error updating job');
   }
 });
@@ -95,22 +95,24 @@ router.post('/job-updated', tokenAuth, async (req, res) => {
 // Job Deleted
 router.post('/job-deleted', tokenAuth, async (req, res) => {
   const data = req.body;
-  console.log(`Job deleted: ${data.id}`);
-  res.status(200).send('Handled deletion');
+  console.log(`🗑 Job deleted: ${data.id}`);
+  res.status(200).send('Job deletion noted');
 });
 
 // Job Closed
 router.post('/job-closed', tokenAuth, async (req, res) => {
   const data = req.body;
   try {
-    const recordId = await findRecordIdByJobId(data.id); // lookup
+    const recordId = await findRecordIdByJobId(data.id);
+    if (!recordId) return res.status(404).send('Job not found');
+
     await updateRecord('Jobs', recordId, {
       'Status': 'Closed'
     });
     res.status(200).send('Job closed');
   } catch (err) {
-    console.error('Job Close Error:', err);
-    res.status(500).send('Error updating job');
+    console.error('[Airtable] Close Error in Jobs:', err.message);
+    res.status(500).send('Error closing job');
   }
 });
 
