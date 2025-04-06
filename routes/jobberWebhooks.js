@@ -16,7 +16,10 @@ tokenAuth = (req, res, next) => {
 };
 
 // Quote Created
+
 router.post('/quote', tokenAuth, async (req, res) => {
+  console.log("🔥 Incoming quote data:", JSON.stringify(req.body, null, 2));
+
   const data = req.body;
   try {
     await createRecord('Quotes', {
@@ -32,6 +35,7 @@ router.post('/quote', tokenAuth, async (req, res) => {
     res.status(500).send('Error saving quote');
   }
 });
+
 
 // Quote Updated
 router.post('/quote-updated', tokenAuth, async (req, res) => {
