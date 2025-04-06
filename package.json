@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/daronefrancis/elds-backend#readme",
   "dependencies": {
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0"
   }
 }
