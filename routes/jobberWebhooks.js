@@ -3,6 +3,8 @@
 const express = require('express');
 const router = express.Router();
 const { createRecord, updateRecord } = require('../services/airtable');
+const { findRecordIdByQuoteId, findRecordIdByJobId } = require('../services/airtableHelpers');
+
 
 // Middleware to validate the webhook secret
 tokenAuth = (req, res, next) => {
